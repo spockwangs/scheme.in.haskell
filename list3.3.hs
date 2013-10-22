@@ -85,7 +85,7 @@ parseCharacter = do char '\\'
                     c <- anyChar
                     s <- many letter
                     case map toLower (c:s) of
-                      "" -> return $ Character c
+                      [a] -> return $ Character a
                       "space" -> return $ Character ' '
                       "newline" -> return $ Character '\n'
                       x -> (unexpected $ "Invalid character name: " ++ x) <?> "\"newline\" or \"space\""
