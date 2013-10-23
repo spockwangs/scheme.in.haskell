@@ -24,10 +24,12 @@ data LispVal = Atom String
 
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
-            <|> parseString
-            <|> parseNumberOrCharacterOrArray
-            <|> parseQuoted
-            <|> parseBackquoted
+            <|> parseString   -- begin with "
+            <|> do char '#'
+                   parseBool <|> parseNumber <|> parseCharacter <|> parseArray
+            <|> parseDecNumber -- begin with a digit
+            <|> parseQuoted    -- begin with '
+            <|> parseBackquoted -- begin with `
             <|> do char '('
                    x <- (try parseList) <|> parseDottedList
                    char ')'
@@ -63,16 +65,13 @@ parseAtom :: Parser LispVal
 parseAtom = do first <- letter <|> symbol
                rest <- many (letter <|> digit <|> symbol)
                let atom = [first] ++ rest
-               return $ case atom of
-                          "#t" -> Bool True
-                          "#f" -> Bool False
-                          otherwise -> Atom atom
+               return $ Atom atom
 
-parseNumberOrCharacterOrArray :: Parser LispVal
-parseNumberOrCharacterOrArray = do {
-                                  char '#';
-                                       parseNumber <|> parseCharacter <|> parseArray
-                                } <|> parseDecNumber
+parseBool :: Parser LispVal
+parseBool = do c <- choice $ map char "tf"
+               return $ case c of
+                          't' -> Bool True
+                          'f' -> Bool False
 
 parseNumber :: Parser LispVal
 parseNumber = do base <- choice $ map char "bodx"
