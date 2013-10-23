@@ -3,7 +3,7 @@ import Text.ParserCombinators.Parsec hiding (spaces)
 import Control.Monad
 import Data.Map as Map hiding (map)
 import Numeric
-import Data.Char
+import Data.Char hiding (isSymbol, isNumber)
 
 main = getArgs >>= putStrLn . show . eval . readExpr . (!!0)
 
@@ -146,6 +146,10 @@ eval :: LispVal -> LispVal
 eval val@(String _) = val
 eval val@(Number _) = val
 eval val@(Bool _) = val
+eval val@(Character _) = val
+eval (Atom s) = case Prelude.lookup s primitives of
+                      Just _ -> Atom "#primitive"
+                      Nothing -> Bool False
 eval (List [Atom "quote", val]) = val
 eval (List (Atom func : args)) = apply func $ map eval args
 
@@ -159,16 +163,32 @@ primitives = [("+", numericBinop (+)),
               ("/", numericBinop div),
               ("mod", numericBinop mod),
               ("quotient", numericBinop quot),
-              ("remainder", numericBinop rem)]
+              ("remainder", numericBinop rem),
+              ("symbol?", isSymbol),
+              ("string?", isString),
+              ("number?", isNumber),
+              ("symbol->string", symbolToString)]
 
 numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> LispVal
 numericBinop op params = Number $ foldl1 op $ map unpackNum params
 
 unpackNum :: LispVal -> Integer
 unpackNum (Number n) = n
-unpackNum (String n) = let parsed = reads n in 
-                          if Prelude.null parsed 
-                            then 0
-                            else fst $ parsed !! 0
-unpackNum (List [n]) = unpackNum n
 unpackNum _ = 0
+
+isSymbol :: [LispVal] -> LispVal
+isSymbol [Atom _] = Bool True
+isSymbol _ = Bool False
+
+isString :: [LispVal] -> LispVal
+isString [String _] = Bool True
+isString _ = Bool False
+
+isNumber :: [LispVal] -> LispVal
+isNumber [Number _] = Bool True
+isNumber _ = Bool False
+
+symbolToString :: [LispVal] -> LispVal
+symbolToString [Atom s] = String s
+symbolToString [(List [Atom "quote", Atom val])] = String val
+symbolToString _ = Bool False
