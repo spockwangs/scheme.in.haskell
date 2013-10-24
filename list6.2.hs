@@ -43,7 +43,7 @@ instance Error LispError where
 
 type ThrowsError = Either LispError
 
-trapError :: (Show e, MonadError e m) => m String -> m String
+trapError :: ThrowsError String -> ThrowsError String
 trapError action = catchError action (return . show)
 
 extractValue :: ThrowsError a -> a
